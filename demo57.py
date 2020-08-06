@@ -1,7 +1,8 @@
 import numpy
 from keras.layers import Dense
 from keras.models import Sequential
-from sklearn.model_selection import StratifiedKFold
+from keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 dataset1 = numpy.loadtxt('data/demo53_datasets.csv', delimiter=',', skiprows=1)
 print(type(dataset1), dataset1.shape)
@@ -11,11 +12,9 @@ resultList = dataset1[:, 8]
 print(inputList.shape)
 print(resultList.shape)
 
-fiveFold = StratifiedKFold(n_splits=5, shuffle=True)
-totalScores = []
-
 
 def createModel():
+    # global model
     model = Sequential()
     print(type(model))
     model.add(Dense(8, input_dim=8, activation='relu'))
@@ -26,20 +25,8 @@ def createModel():
     return model
 
 
-
-for train, test in fiveFold.split(inputList, resultList):
-    # print(type(train))
-    # print(type(test))
-    # print(train)
-    # print(test)
-
-    model1 = createModel()
-    model1.fit(inputList[train], resultList[train], epochs=200, batch_size=20, verbose=0)
-    scores = model1.evaluate(inputList[test], resultList[test])
-    print(scores)
-    totalScores.append(scores[1] * 100)
-    print(model1.metrics_names)
-    print(f"{model1.metrics_names[0]} => {scores[0]}")
-    print(f"{model1.metrics_names[1]} => {scores[1]}")
-
-print(f"five fold scores={totalScores}")
+model1 = KerasClassifier(build_fn=createModel, epochs=200, batch_size=20, verbose=0)
+fiveFold = StratifiedKFold(n_splits=5, shuffle=True)
+results = cross_val_score(model1, inputList, resultList, cv=fiveFold)
+print(results)
+print(f"mean={results.mean()},std={results.std()}")
